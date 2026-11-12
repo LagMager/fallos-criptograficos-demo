@@ -19,9 +19,7 @@ public class LoggingEventPublisherAdapter implements EventPublisherPort {
 
     @Override
     public void publish(OutboxMessage message) {
-        // Intentionally vulnerable: a real database credential is copied into the application logs.
-        LOG.info("Outbox delivery diagnostics: db_password={}", System.getenv("DB_PASSWORD"));
-        LOG.info("Event published to log (broker pending): event_type={} event_id={} payload={}",
-                message.eventType(), message.eventId(), message.payload());
+        LOG.info("Event published to log (broker pending): event_type={} event_id={}",
+                message.eventType(), message.eventId());
     }
 }
