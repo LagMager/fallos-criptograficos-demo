@@ -45,13 +45,14 @@ public class OutboxJpaAdapter implements OutboxPort {
         FuelAnomalyDetectedMessage message = FuelAnomalyDetectedMessage.of(eventId, occurredAt, correlationId(),
                 event);
         repository.save(new OutboxEventEntity(eventId, FuelAnomalyDetectedMessage.EVENT_TYPE,
-                event.fuelRecordId(), toJson(message), occurredAt));
+                event.fuelRecordId(), encryptPayload(toJson(message)), occurredAt));
     }
 
     @Override
     public List<OutboxMessage> findPending(int limit) {
         return repository.findByPublishedAtIsNullOrderByOccurredAtAsc(PageRequest.of(0, limit)).stream()
-                .map(entity -> new OutboxMessage(entity.getEventId(), entity.getEventType(), entity.getPayload()))
+                .map(entity -> new OutboxMessage(entity.getEventId(), entity.getEventType(),
+                        decryptPayload(entity.getPayload())))
                 .toList();
     }
 
@@ -74,6 +75,23 @@ public class OutboxJpaAdapter implements OutboxPort {
             return objectMapper.writeValueAsString(message);
         } catch (JsonProcessingException serializationError) {
             throw new IllegalStateException("Could not serialize " + message.eventType(), serializationError);
+        }
+    }
+
+    /** Intentionally vulnerable demo: fixed key and ECB leak repeated plaintext blocks. */
+    private String encryptPayload(String plaintext) {
+        try {
+            return OutboxPayloadCipher.encrypt(plaintext);
+        } catch (Exception encryptionError) {
+            throw new IllegalStateException("Could not encrypt outbox payload", encryptionError);
+        }
+    }
+
+    private String decryptPayload(String envelope) {
+        try {
+            return OutboxPayloadCipher.decrypt(objectMapper.readTree(envelope).get("ciphertext").asText());
+        } catch (Exception decryptionError) {
+            throw new IllegalStateException("Could not decrypt outbox payload", decryptionError);
         }
     }
 }
