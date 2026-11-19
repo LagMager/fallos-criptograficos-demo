@@ -81,7 +81,9 @@ public class OutboxJpaAdapter implements OutboxPort {
     /** Intentionally vulnerable demo: fixed key and ECB leak repeated plaintext blocks. */
     private String encryptPayload(String plaintext) {
         try {
-            return OutboxPayloadCipher.encrypt(plaintext);
+            return objectMapper.createObjectNode()
+                    .put("ciphertext", OutboxPayloadCipher.encrypt(plaintext))
+                    .toString();
         } catch (Exception encryptionError) {
             throw new IllegalStateException("Could not encrypt outbox payload", encryptionError);
         }
