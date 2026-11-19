@@ -94,7 +94,7 @@ Key decisions, from the G08 Software Architecture Document:
 git clone https://github.com/FleetOpsProyect/grupo_08_combustible.git && cd grupo_08_combustible
 
 cp .env.example .env
-# Every variable is documented inside .env.example
+# Set OUTBOX_ENCRYPTION_KEY in .env (generate it with: openssl rand -base64 32)
 
 docker compose up --build
 ```

@@ -36,6 +36,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -48,7 +49,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
 @ActiveProfiles("test")
-@Import({FuelRecordJpaAdapter.class, VehicleAverageJpaAdapter.class, OutboxJpaAdapter.class,
+@TestPropertySource(properties = "fuel.outbox.encryption-key=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+@Import({FuelRecordJpaAdapter.class, VehicleAverageJpaAdapter.class, OutboxJpaAdapter.class, OutboxPayloadCipher.class,
     PersistenceAdaptersIntegrationTest.Support.class})
 class PersistenceAdaptersIntegrationTest {
 

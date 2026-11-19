@@ -24,6 +24,7 @@ public class OutboxJpaAdapter implements OutboxPort {
     private final OutboxEventJpaRepository repository;
     private final ObjectMapper objectMapper;
     private final Supplier<UUID> idGenerator;
+    private final OutboxPayloadCipher payloadCipher;
 
     /**
      * Creates the adapter.
@@ -31,12 +32,14 @@ public class OutboxJpaAdapter implements OutboxPort {
      * @param repository   Spring Data repository
      * @param objectMapper JSON serializer of the contract message
      * @param idGenerator  generator of event ids
+     * @param payloadCipher encrypts the stored outbox payload
      */
     public OutboxJpaAdapter(OutboxEventJpaRepository repository, ObjectMapper objectMapper,
-                            Supplier<UUID> idGenerator) {
+                            Supplier<UUID> idGenerator, OutboxPayloadCipher payloadCipher) {
         this.repository = repository;
         this.objectMapper = objectMapper;
         this.idGenerator = idGenerator;
+        this.payloadCipher = payloadCipher;
     }
 
     @Override
@@ -45,13 +48,14 @@ public class OutboxJpaAdapter implements OutboxPort {
         FuelAnomalyDetectedMessage message = FuelAnomalyDetectedMessage.of(eventId, occurredAt, correlationId(),
                 event);
         repository.save(new OutboxEventEntity(eventId, FuelAnomalyDetectedMessage.EVENT_TYPE,
-                event.fuelRecordId(), toJson(message), occurredAt));
+                event.fuelRecordId(), encryptPayload(toJson(message)), occurredAt));
     }
 
     @Override
     public List<OutboxMessage> findPending(int limit) {
         return repository.findByPublishedAtIsNullOrderByOccurredAtAsc(PageRequest.of(0, limit)).stream()
-                .map(entity -> new OutboxMessage(entity.getEventId(), entity.getEventType(), entity.getPayload()))
+                .map(entity -> new OutboxMessage(entity.getEventId(), entity.getEventType(),
+                        decryptPayload(entity.getPayload())))
                 .toList();
     }
 
@@ -74,6 +78,22 @@ public class OutboxJpaAdapter implements OutboxPort {
             return objectMapper.writeValueAsString(message);
         } catch (JsonProcessingException serializationError) {
             throw new IllegalStateException("Could not serialize " + message.eventType(), serializationError);
+        }
+    }
+
+    private String encryptPayload(String plaintext) {
+        try {
+            return payloadCipher.encrypt(plaintext);
+        } catch (Exception encryptionError) {
+            throw new IllegalStateException("Could not encrypt outbox payload", encryptionError);
+        }
+    }
+
+    private String decryptPayload(String envelope) {
+        try {
+            return payloadCipher.decrypt(objectMapper.readTree(envelope));
+        } catch (Exception decryptionError) {
+            throw new IllegalStateException("Could not decrypt outbox payload", decryptionError);
         }
     }
 }

@@ -67,6 +67,7 @@ fuel:
   outbox:
     relay-interval-ms: ${OUTBOX_RELAY_INTERVAL_MS}
     batch-size: ${OUTBOX_BATCH_SIZE}
+    encryption-key: ${OUTBOX_ENCRYPTION_KEY}
   assignments:
     base-url: ${ASSIGNMENTS_BASE_URL}
     in-progress-state: ${ASSIGNMENT_IN_PROGRESS_STATE}
